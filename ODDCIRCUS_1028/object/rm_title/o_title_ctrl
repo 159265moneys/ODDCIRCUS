@@ -1,0 +1,4 @@
+/// o_title_ctrl.Step — EnterでOPへ
+if (Input_Pressed(Action.Confirm)) { // Enter or F（Confirm） :contentReference[oaicite:13]{index=13}
+    room_goto(rm_op);
+}

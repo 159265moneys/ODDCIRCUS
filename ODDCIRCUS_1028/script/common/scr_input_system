@@ -1,0 +1,56 @@
+/// scr_input_system.gml
+/// 目的：全rm共通の「入力API」だけを提供（最小・普遍）
+/// 依存：GML標準入力API（keyboard_check / _pressed / _released, ord, vk_*）
+/// 参考：ordは A〜Z, 0〜9 の1文字のみを指定（公式） :contentReference[oaicite:2]{index=2}
+
+enum Action {
+    MoveLeft, MoveRight, MoveUp, MoveDown, // WASD
+    Confirm, Cancel, Menu,                 // Enter/F, R, G
+    COUNT
+};
+
+function Input_Init()
+{
+    // アクション→複数キー割当（配列）
+    // 参照：array_create/array_length（公式） :contentReference[oaicite:3]{index=3}
+    global.INPUT = array_create(Action.COUNT);
+
+    // 上書き設定（最終優先）：移動=WASD／決定=Enter,F／キャンセル=R／メニュー=G
+    global.INPUT[Action.MoveLeft]  = [ ord("A") ];
+    global.INPUT[Action.MoveRight] = [ ord("D") ];
+    global.INPUT[Action.MoveUp]    = [ ord("W") ];
+    global.INPUT[Action.MoveDown]  = [ ord("S") ];
+    global.INPUT[Action.Confirm]   = [ vk_enter, ord("F") ]; // vk_enter はキーボード定数（公式） :contentReference[oaicite:4]{index=4}
+    global.INPUT[Action.Cancel]    = [ ord("R") ];
+    global.INPUT[Action.Menu]      = [ ord("G") ];
+}
+
+function Input_Check(_action)
+{
+    var keys = global.INPUT[_action];
+    var n = array_length(keys);
+    for (var i = 0; i < n; i++) {
+        if (keyboard_check(keys[i])) return true; // 押下中（公式） :contentReference[oaicite:5]{index=5}
+    }
+    return false;
+}
+
+function Input_Pressed(_action)
+{
+    var keys = global.INPUT[_action];
+    var n = array_length(keys);
+    for (var i = 0; i < n; i++) {
+        if (keyboard_check_pressed(keys[i])) return true; // 立ち上がり（公式） :contentReference[oaicite:6]{index=6}
+    }
+    return false;
+}
+
+function Input_Released(_action)
+{
+    var keys = global.INPUT[_action];
+    var n = array_length(keys);
+    for (var i = 0; i < n; i++) {
+        if (keyboard_check_released(keys[i])) return true; // 立ち下がり
+    }
+    return false;
+}

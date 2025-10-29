@@ -1,0 +1,54 @@
+/// o_player.Create — 主人公（最小）
+/// ここでは「動けるかどうか」のフラグだけ持つ（当たり判定や演出は後回し）
+controls_enabled = false;   // 初期は不可（タイトル/OP対策）
+speed_walk = 4;             // 移動速度（最小）
+
+
+
+
+
+
+
+
+
+
+/// o_player.Step — 最小のWASD移動（画面外に出ない）
+/// 入力APIは共通の Input_* を使う
+
+if (!controls_enabled) exit;
+
+var dx = 0, dy = 0;
+if (Input_Check(Action.MoveLeft))  dx -= 1;
+if (Input_Check(Action.MoveRight)) dx += 1;
+if (Input_Check(Action.MoveUp))    dy -= 1;
+if (Input_Check(Action.MoveDown))  dy += 1;
+
+x += dx * speed_walk;
+y += dy * speed_walk;
+
+// 画面外へのはみ出し防止（1920×1080固定）
+x = clamp(x, 0, 1920);  // 公式：clamp(val,min,max) :contentReference[oaicite:11]{index=11}
+y = clamp(y, 0, 1080);
+
+
+
+
+
+
+
+
+
+
+
+/// o_player.Draw — スプライトが無くても見える最小ビジュアル（白い丸）
+/// draw_* は直前の色/アルファ状態を引き継ぐので、明示してから描く（後で戻す）
+
+var _col = draw_get_colour(); // 公式：draw_get_colour/draw_set_colour :contentReference[oaicite:12]{index=12}
+var _alp = draw_get_alpha();
+
+draw_set_alpha(1);
+draw_set_colour(c_white);
+draw_circle(x, y, 10, false);
+
+draw_set_colour(_col);
+draw_set_alpha(_alp);

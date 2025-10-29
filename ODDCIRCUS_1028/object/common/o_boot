@@ -1,0 +1,76 @@
+/// o_boot.Create — ゲーム起動時に一度だけ
+/// 役割：入力の初期化（他の共通処理を増やさない）
+Input_Init();
+
+
+
+
+
+
+
+
+
+/// o_boot.Room Start — 各rm開始時
+/// 役割：主人公の出現制御（スポーン or エッジ遷移位置の適用）
+
+// 1) このrmにスポーンマーカーがあるか
+var has_spawn = instance_exists(o_spawn_player);
+
+// 2) 主人公の存在を確保（無ければスポーン位置で一度だけ生成）
+if (has_spawn) {
+    var sp = instance_find(o_spawn_player, 0);
+    if (!instance_exists(o_player)) {
+        var p = instance_create_layer(sp.x, sp.y, sp.layer, o_player); // 生成
+        p.persistent = true;
+        p.controls_enabled = true;
+        p.visible = true;
+    } else {
+        with (o_player) {
+            x = sp.x; y = sp.y;          // 既にいるなら移動
+            controls_enabled = true;
+            visible = true;
+        }
+    }
+} else {
+    // スポーンが無いrm（タイトル/OPなど）は非表示・操作不可
+    if (instance_exists(o_player)) {
+        with (o_player) { controls_enabled = false; visible = false; }
+    }
+}
+
+// 3) もし前rmからのエッジ遷移情報があるなら、それを最優先で適用
+//    ※ スポーン位置よりも _entry_* を優先することで“連続感”を出す
+if (instance_exists(o_player)) {
+    var use_entry = variable_global_exists("_entry_side") && (global._entry_side != "");
+    if (use_entry) {
+        var margin = 12; // 画面端から少し内側に押し戻す量（めり込み防止）
+
+        with (o_player) {
+            if (global._entry_side == "top") {
+                // 上から入ってくる：Yは上端側、Xは持ち越し
+                x = clamp(global._entry_x, 16, 1920 - 16);
+                y = margin;
+            }
+            else if (global._entry_side == "bottom") {
+                x = clamp(global._entry_x, 16, 1920 - 16);
+                y = 1080 - margin;
+            }
+            else if (global._entry_side == "left") {
+                x = margin;
+                y = clamp(global._entry_y, 16, 1080 - 16);
+            }
+            else if (global._entry_side == "right") {
+                x = 1920 - margin;
+                y = clamp(global._entry_y, 16, 1080 - 16);
+            }
+            controls_enabled = true;
+            visible = true;
+        }
+
+        // 一度使ったらクリア（次ルームへ持ち越さない）
+        global._entry_side = "";
+        global._entry_x = 0;
+        global._entry_y = 0;
+    }
+}
+

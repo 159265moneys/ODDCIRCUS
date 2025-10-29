@@ -1,0 +1,13 @@
+/// o_playeroom_ctrl.Step — 左端→ rm_circus_mainrm へ（連続遷移）
+/// ポイント：if / if 構成＆edge=6で余裕を持たせる
+if (!instance_exists(o_player)) exit;
+
+var p = instance_find(o_player, 0);
+var edge = 6;
+
+if (Input_Check(Action.MoveLeft) && p.x <= edge) {
+    global._entry_side = "right";    // 右から入る
+    global._entry_x = 0;
+    global._entry_y = p.y;           // Y は持ち越す
+    room_goto(rm_circus_mainrm);
+}

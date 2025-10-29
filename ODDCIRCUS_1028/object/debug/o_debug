@@ -1,0 +1,143 @@
+/// o_debug.Create
+/// 目的：デバッグ表示の状態と、メモリ内スナップショット領域の初期化（本編に依存しない）
+
+_dbg_overlay = false;                // オーバーレイ表示トグル
+_flashU = 0; _flashO = 0; _flashP = 0; // U/O/P を押した「直後だけ光る」フラグ（カウンタ）
+global._dbg_last = "none";           // 直近の操作名
+global._dbg_mem = undefined;         // メモリ内スナップショット（ファイルI/Oは行わない）
+global._dbg_save_seq = 0;            // 保存回数の連番（保存時に +1）
+
+// 本編に未導入でも落ちないよう、安全にダミーを用意
+if (!variable_global_exists("tickets"))   global.tickets  = { good: 0, evil: 0 };
+if (!variable_global_exists("curiosity")) global.curiosity = { applause: 0, catharsis: 0 };
+if (!variable_global_exists("boss_clear_method")) global.boss_clear_method = "none";
+
+
+
+
+
+
+
+
+
+
+
+/// o_debug.Step
+/// 目的：デバッグ入力（T/Y/J/I/K/V/M/U/O/P）。本編の共通入力APIに依存せず、ここで直接読む。
+
+// T: オーバーレイ表示ON/OFF
+if (keyboard_check_pressed(ord("T"))) _dbg_overlay = !_dbg_overlay;
+
+// Y/J/I/K: ダミー値の増減（即座にオーバーレイに反映）
+if (keyboard_check_pressed(ord("Y"))) global.tickets.good += 10;
+if (keyboard_check_pressed(ord("J"))) global.tickets.evil += 10;
+
+if (keyboard_check_pressed(ord("I"))) {
+    global.curiosity.applause = clamp(global.curiosity.applause + 10, 0, 100);
+}
+if (keyboard_check_pressed(ord("K"))) {
+    global.curiosity.catharsis = clamp(global.curiosity.catharsis + 10, 0, 100);
+}
+
+// V/M: クリア方式の仮記録
+if (keyboard_check_pressed(ord("V"))) global.boss_clear_method = "attack";
+if (keyboard_check_pressed(ord("M"))) global.boss_clear_method = "act";
+
+// U: メモリにスナップショット保存（ファイルI/Oはしない）
+if (keyboard_check_pressed(ord("U"))) {
+    global._dbg_save_seq += 1; // 保存連番を進める
+    global._dbg_mem = {
+        id: global._dbg_save_seq, // 可視化しやすい保存ID
+        tickets:   { good: global.tickets.good, evil: global.tickets.evil },
+        curiosity: { applause: global.curiosity.applause, catharsis: global.curiosity.catharsis },
+        boss_clear_method: global.boss_clear_method
+    };
+    global._dbg_last = "saved_to_memory(#" + string(global._dbg_save_seq) + ")";
+    _flashU = room_speed div 2; // 約0.5秒だけ光らせる
+}
+
+// O: メモリから復元（無ければ no_memory_save）
+if (keyboard_check_pressed(ord("O"))) {
+    if (is_undefined(global._dbg_mem)) {
+        global._dbg_last = "no_memory_save";
+    } else {
+        global.tickets.good        = global._dbg_mem.tickets.good;
+        global.tickets.evil        = global._dbg_mem.tickets.evil;
+        global.curiosity.applause  = global._dbg_mem.curiosity.applause;
+        global.curiosity.catharsis = global._dbg_mem.curiosity.catharsis;
+        global.boss_clear_method   = global._dbg_mem.boss_clear_method;
+        global._dbg_last = "loaded_from_memory(#" + string(global._dbg_mem.id) + ")";
+    }
+    _flashO = room_speed div 2;
+}
+
+// P: メモリのスナップショット削除
+if (keyboard_check_pressed(ord("P"))) {
+    global._dbg_mem = undefined;
+    global._dbg_last = "deleted_memory_save";
+    _flashP = room_speed div 2;
+}
+
+// フラッシュ用カウンタの減衰
+if (_flashU > 0) _flashU -= 1;
+if (_flashO > 0) _flashO -= 1;
+if (_flashP > 0) _flashP -= 1;
+
+
+
+
+
+
+
+
+
+
+
+
+/// o_debug.Draw GUI
+/// 目的：右上に半透明パネルを描画。MEM/last_action と U/O/P のフラッシュを見える化。
+
+if (!_dbg_overlay) exit;
+
+// パネル矩形（固定解像度 1920×1080 前提）
+var PAD = 20;
+var W = 600, H = 270;   // 状態行を増やしたので高さを少しだけ拡張
+var x2 = 1920 - PAD, x1 = x2 - W;
+var y1 = PAD, y2 = y1 + H;
+
+// 描画状態（色/アルファ）を退避
+var _col = draw_get_colour();
+var _alp = draw_get_alpha();
+
+// 背景（半透明黒）→枠（白）
+draw_set_alpha(0.65); draw_set_colour(c_black); draw_rectangle(x1, y1, x2, y2, false);
+draw_set_alpha(1);    draw_set_colour(c_white); draw_rectangle(x1, y1, x2, y2, true);
+
+// MEM状態の文字列
+var mem_status = is_undefined(global._dbg_mem)
+    ? "MEM: none"
+    : "MEM: saved  #" + string(global._dbg_mem.id);
+
+// U/O/P のフラッシュ表示（押した直後だけ ◉ を点灯）
+var u_mark = (_flashU > 0) ? "◉" : "・";
+var o_mark = (_flashO > 0) ? "◉" : "・";
+var p_mark = (_flashP > 0) ? "◉" : "・";
+
+// 情報テキスト
+var s = "DEBUG (T)\n"
+      + "tickets.good=" + string(global.tickets.good)
+      + " / tickets.evil=" + string(global.tickets.evil) + "\n"
+      + "curiosity.applause=" + string(global.curiosity.applause)
+      + "% / curiosity.catharsis=" + string(global.curiosity.catharsis) + "%\n"
+      + "boss_clear_method=" + string(global.boss_clear_method) + "\n"
+      + mem_status + "    "
+      + "[U:" + u_mark + "] [O:" + o_mark + "] [P:" + p_mark + "]\n"
+      + "last_action=" + string(global._dbg_last) + "\n"
+      + "(U:保存  O:読込  P:削除)";
+
+// 文字描画（白）
+draw_text(x1 + 16, y1 + 16, s);
+
+// 描画状態を復元
+draw_set_colour(_col);
+draw_set_alpha(_alp);

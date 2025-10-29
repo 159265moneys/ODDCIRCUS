@@ -1,0 +1,82 @@
+/// o_phonograph.Create
+/// 目的：近づいて Confirm（Enter/F）でメモリ保存する蓄音機の“中身”
+/// 可視化のための半径と表示フラグだけ持つ（演出・音・スプライトは不使用）
+
+radius = 32;      // 触れる距離（px）
+
+
+
+
+
+
+/// o_phonograph.Step
+/// 近づいて Confirm（Enter/F）が押された瞬間にスナップショットを保存（メモリのみ）
+
+if (!instance_exists(o_player)) exit;
+
+var p = instance_find(o_player, 0);
+
+if (point_distance(x, y, p.x, p.y) <= radius && Input_Pressed(Action.Confirm)) {
+    if (!variable_global_exists("_save_seq")) global._save_seq = 0;
+    global._save_seq += 1;
+
+    var snap = {
+        id: global._save_seq,
+        room_index: room,
+        room_name: room_get_name(room),
+        player_x: p.x,
+        player_y: p.y,
+        tickets:   { good: global.tickets.good, evil: global.tickets.evil },
+        curiosity: { applause: global.curiosity.applause, catharsis: global.curiosity.catharsis },
+        boss_clear_method: global.boss_clear_method
+    };
+
+    // 本編の保存先
+    global.save_mem = snap;
+
+    // デバッグ島（o_debug）の O で検証できるよう、互換変数にも同じ内容を入れておく
+    global._dbg_mem = snap;
+}
+
+
+
+
+
+
+
+
+/// o_phonograph.Draw
+/// 目印として“見える”ように大胆に表示（スプライト不要）
+/// ・白い土台（×1）＋黒い盤（×1）＋「SAVE」文字（近距離なら濃く）
+/// ・描画状態（色/アルファ）は退避→復元して副作用を残さない
+
+var _c = draw_get_colour();
+var _a = draw_get_alpha();
+
+// 盤のベース（白い四角）
+draw_set_alpha(1);
+draw_set_colour(c_white);
+draw_rectangle(x-16, y-16, x+16, y+16, false);
+
+// レコードっぽく黒丸（中抜き）
+draw_set_colour(c_black);
+draw_circle(x, y, 12, false);
+
+// プレイヤーが近いときは「SAVE」テキストを表示（遠いときは薄く）
+var near = false;
+if (instance_exists(o_player)) {
+    var p = instance_find(o_player, 0);
+    near = (point_distance(x, y, p.x, p.y) <= radius);
+}
+draw_set_alpha( near ? 1 : 0.35 );
+draw_set_colour(c_white);
+draw_text(x + 20, y - 8, "SAVE");
+
+// 半径の可視化（うすい円）。邪魔ならこの3行は削除OK。
+draw_set_alpha(0.15);
+draw_set_colour(c_white);
+draw_circle(x, y, radius, false);
+
+// 復元
+draw_set_colour(_c);
+draw_set_alpha(_a);

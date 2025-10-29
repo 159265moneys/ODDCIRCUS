@@ -1,0 +1,4 @@
+/// o_op_ctrl.Step — Enter/Fでbackrm1へ
+if (Input_Pressed(Action.Confirm)) {
+    room_goto(rm_backrm1);
+}

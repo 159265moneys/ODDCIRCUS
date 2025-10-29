@@ -1,0 +1,22 @@
+/// o_circus_mainrm_ctrl.Step — 上端↔backrm1、右端↔rm_playeroom の双方向遷移
+/// ポイント：if / if（else if にしない）。上端と右端のどちらでも発火可能。
+if (!instance_exists(o_player)) exit;
+
+var p = instance_find(o_player, 0);
+var edge = 6;
+
+// 上端→ backrm1（Wを押し付け＋上端に接触）
+if (Input_Check(Action.MoveUp) && p.y <= edge) {
+    global._entry_side = "bottom";   // 下から入る
+    global._entry_x = p.x;           // X は持ち越す
+    global._entry_y = 0;
+    room_goto(rm_backrm1);
+}
+
+// 右端→ rm_playeroom（Dを押し付け＋右端に接触）
+if (Input_Check(Action.MoveRight) && p.x >= (1920 - edge)) {
+    global._entry_side = "left";     // 左から入る
+    global._entry_x = 0;
+    global._entry_y = p.y;           // Y は持ち越す
+    room_goto(rm_playeroom);         // ※ rm名のスペル要確認
+}
